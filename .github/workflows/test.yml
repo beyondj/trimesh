@@ -37,11 +37,33 @@ jobs:
       run: |
         pip install --no-cache-dir .
         python tests/test_minimal.py
-    - name: Install Trimesh
-      run: pip install --no-cache-dir .[easy,test]
+
+    - name: Install Trimesh & test dependencies
+      run: |
+        pip install --no-cache-dir .[easy,test]
+        pip install pytest-ranking
+    
+    - name: Restore pytest-ranking cache
+      id: restore-pytest-ranking-cache
+      if: always()
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ github.workspace }}/.pytest_cache/v/pytest_ranking_data
+        key: pytest-ranking-cache-${{ github.workflow }}-${{ runner.os }}-${{ matrix.python }}
+    # --------below is the job for running pytest
+      
     - name: Run Pytest
       run: |
         pytest
+    
+    - name: Save pytest-ranking cache
+      id: save-pytest-ranking-cache
+      if: always()
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ github.workspace }}/.pytest_cache/v/pytest_ranking_data
+        key: pytest-ranking-cache-${{ github.workflow }}-${{ runner.os }}-${{ matrix.python }}-${{ github.run_id }}
+        
   docker:
     name: Run Tests In Docker
     runs-on: ubuntu-latest
