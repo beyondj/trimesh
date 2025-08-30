@@ -54,7 +54,7 @@ jobs:
       
     - name: Run Pytest
       run: |
-        pytest --rank --rank-weight 1,1,1 --rank-level function
+        pytest --rank
     
     - name: Save pytest-ranking cache
       id: save-pytest-ranking-cache
