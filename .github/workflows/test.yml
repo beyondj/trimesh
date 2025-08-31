@@ -14,7 +14,7 @@ jobs:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
-        python-version: "3.12"
+        python-version: "3.13"
     - name: Install
       run: pip install ruff
     - name: Run Ruff
@@ -25,8 +25,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.8", "3.12"]
-        os: [ubuntu-latest, windows-latest, macos-13]
+        python-version: ["3.8", "3.13"]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-13]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -37,11 +37,33 @@ jobs:
       run: |
         pip install --no-cache-dir .
         python tests/test_minimal.py
-    - name: Install Trimesh
-      run: pip install --no-cache-dir .[easy,test]
+
+    - name: Install Trimesh & test dependencies
+      run: |
+        pip install --no-cache-dir .[easy,test]
+        pip install pytest-ranking
+    
+    - name: Restore pytest-ranking cache
+      id: restore-pytest-ranking-cache
+      if: always()
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ github.workspace }}/.pytest_cache/v/pytest_ranking_data
+        key: pytest-ranking-cache-${{ github.workflow }}-${{ runner.os }}-${{ matrix.python }}
+    # --------below is the job for running pytest
+      
     - name: Run Pytest
       run: |
-        pytest
+        pytest --rank
+    
+    - name: Save pytest-ranking cache
+      id: save-pytest-ranking-cache
+      if: always()
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ github.workspace }}/.pytest_cache/v/pytest_ranking_data
+        key: pytest-ranking-cache-${{ github.workflow }}-${{ runner.os }}-${{ matrix.python }}-${{ github.run_id }}
+        
   docker:
     name: Run Tests In Docker
     runs-on: ubuntu-latest
@@ -61,12 +83,11 @@ jobs:
       with:
         path: ~/.trimesh-cache
         key: trimesh-cache
-    - name: Set up Python 3.11
+    - name: Set up Python 3.13
       uses: actions/setup-python@v5
       with:
-         python-version: "3.11"
+         python-version: "3.13"
     - name: Install Trimesh
       run: pip install .[easy,test]
     - name: Run Corpus Check
-      run: python tests/corpus.py
-
+      run: python tests/corpus.py -run
